@@ -29,6 +29,8 @@ pipeline {
                 script {
                     echo '***Create File and Folder***'
                     sh '''
+                        ls
+                        
                         mkdir test
                         mkdir test/newman
                         touch test/console.txt

@@ -29,17 +29,17 @@ pipeline {
                 script {
                     sh '''
                         # Install Newman
-                        sudo npm install -g newman
+                        npm install -g newman
 
                         # Install jq
-                        sudo apt-get update
-                        sudo apt-get install -y jq
+                        apt-get update
+                        apt-get install -y jq
 
                         # Install Newman HTML reporter
-                        sudo npm install -g newman-reporter-html
+                        npm install -g newman-reporter-html
 
                         # Install Newman HTML reporter
-                        sudo npm install -g newman-reporter-htmlextra
+                        npm install -g newman-reporter-htmlextra
                     '''
                 }
             }

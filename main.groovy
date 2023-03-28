@@ -7,6 +7,8 @@ def cleanUp(folder, file) {
         if [ -e file]; then
             rm file
         fi
+
+        list test
     '''
 }
 

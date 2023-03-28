@@ -29,7 +29,7 @@ pipeline {
                 script {
                     echo '***Create File and Folder***'
                     sh '''
-                        ls
+                        ls test
                         if [ -d "test" ]; then
                             rm -rf test
                         fi
@@ -37,7 +37,7 @@ pipeline {
                         mkdir test/newman
                         touch test/console.txt
 
-                        ls
+                        ls test
                     '''
 
                     echo '***Clean Up Report Directory***'

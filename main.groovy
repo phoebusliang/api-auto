@@ -9,6 +9,7 @@ def cleanUp(folder, file) {
         fi
 
         ls
+        ls test
     '''
 }
 

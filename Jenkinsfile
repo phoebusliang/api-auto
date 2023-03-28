@@ -4,7 +4,7 @@ pipeline {
     agent any
 
     environment {
-        MY_SECRET_ENV_VAR = credentials('my-secret-text-id')
+        PASSWORD = credentials('password')
     }
 
     stages {

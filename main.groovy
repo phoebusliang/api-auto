@@ -1,6 +1,6 @@
 def cleanUp(folder, file) {
-    sh '''
-        echo $folder
+    sh """
+        echo ${folder}
         if [ -d ${folder} ]; then
             rm -rf ${folder}
         fi
@@ -11,7 +11,7 @@ def cleanUp(folder, file) {
 
         ls
         ls test
-    '''
+    """
 }
 
 return this

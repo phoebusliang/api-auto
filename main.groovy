@@ -4,7 +4,7 @@ def cleanUp(folder, file) {
             rm -rf $folder
         fi
 
-        if [ -e $file]; then
+        if [ -e $file ]; then
             rm $file
         fi
 

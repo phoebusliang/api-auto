@@ -1,5 +1,6 @@
 def cleanUp(folder, file) {
     sh '''
+        echo $folder
         if [ -d ${folder} ]; then
             rm -rf ${folder}
         fi

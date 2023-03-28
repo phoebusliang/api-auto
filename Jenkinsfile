@@ -30,7 +30,9 @@ pipeline {
                     echo '***Create File and Folder***'
                     sh '''
                         ls
-                        
+                        if [ -d "test" ]; then
+                            rm -rf test
+                        fi
                         mkdir test
                         mkdir test/newman
                         touch test/console.txt

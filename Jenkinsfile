@@ -31,7 +31,7 @@ pipeline {
                     sh '''
                         mkdir test
                         mkdir test/newman
-                        cat test/console.txt
+                        touch test/console.txt
 
                         ls
                     '''

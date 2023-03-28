@@ -8,7 +8,7 @@ def cleanUp(folder, file) {
             rm file
         fi
 
-        list test
+        ls
     '''
 }
 

@@ -5,6 +5,8 @@ pipeline {
 
     environment {
         PASSWORD = credentials('password')
+        CUS_ENV = "sit"
+        TEST_STR = "test-${CUS_ENV}"
     }
 
     stages {
@@ -28,6 +30,7 @@ pipeline {
             steps {
                 script {
                     echo '***Create File and Folder***'
+                    echo "${TEST_STR}";
                     sh '''
                         ls test
                         if [ -d "test" ]; then

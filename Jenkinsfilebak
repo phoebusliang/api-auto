@@ -1,9 +1,11 @@
 def main_resource
+def commonPipeline
 
 pipeline {
-    agent any
+    agent { label 'cm-linux' }
 
     environment {
+        NPM_TOKEN = credentials('npm_token')
         PASSWORD = credentials('password')
     }
 
@@ -12,8 +14,8 @@ pipeline {
             steps {
                 script {
                     print "init pipeline"
-                    main_resource = load 'main.groovy'
-
+                    main_resource = load './main.groovy'
+                    commonPipeline = load './commonPipeline.groovy'
                 }
             }
         }
@@ -28,6 +30,11 @@ pipeline {
             steps {
                 script {
                     sh '''
+                        npm config set registry https://sample/npm-group/
+                        npm config set strict-ssl false
+                        npm config set always-aut true
+                        npm config set _auth $NPM_TOKEN
+
                         # Install Newman
                         npm install -g newman
 
@@ -51,54 +58,68 @@ pipeline {
                 script {
                     echo '***Clean Up Report Directory***'
                     sh '''
-                        if [ -d "newman" ]; then
-                            rm -rf "newman"
+                        if [ -d "ca-nova-regression/newman" ]; then
+                            rm -rf "ca-nova-regression/newman"
                         fi
 
-                        if [ -e "console.txt"]; then
-                            rm "console.txt"
+                        if [ -e "ca-nova-regression/console.txt"]; then
+                            rm "ca-nova-regression/console.txt"
                         fi
                     '''
 
-
-                    def collection_file = "NovaAPIs.postman_collection.json"
-                    def environment_file = "nova.postman_environment.json"
-                    def report_file = "newman_html_report.html"
-
                     sh '''
                         function run_newman_with_secret() {
+                            def collection_file="ca-nova-regression/ca-nova-regression.postman_collection.json"
+                            def environment_file="ca-nova-regression/nova-ca-sit.postman_environment.json"
+                            def report_file="ca-nova-regression/newman/ca_nova_regression_report.html"
+                            def console_log="ca-nova-regression/console.txt"
 
-                            cp "$environment_file" temp_nova.postman_environment.json
-                            cp "$collection_file" temp_NovaAPIs.postman_collection.json
+                            if [ -z "$PASSWORD" ]; then
+                                echo "The PASSWORD environment variable is not set."
+                            fi
 
-                            newman run temp_NovaAPIs.postman_collection.json -e temp_NovaAPIs.postman_collection.json -r cli,html --reporter-htmlextra-export "$report_file" --reporter-htmlextra-skipSensitiveData "token|password" --insecure > "console.txt"
+                            cp "$collection_file" ca-nova-regression/temp_ca-nova-regression.postman_collection.json
+                            cp "$environment_file" ca-nova-regression/temp_nova-ca-sit.postman_environment.json
 
-                            rm temp_NovaAPIs.postman_collection.json temp_nova.postman_environment.json
+                            sed -i 's/\\\\"\\\\"/\\\\"'"$PASSWORD"'\\\\"/g\' ca-nova-regression/temp_ca-nova-regression.postman_collection.json
+
+                            newman run ca-nova-regression/temp_ca-nova-regression.postman_collection.json -e ca-nova-regression/temp_nova-ca-sit.postman_collection.json -r htmlextra,cli --reporter-htmlextra-export "$report_file" --reporter-htmlextra-skipSensitiveData "token|password" --insecure > "console.txt"
+
+                            rm ca-nova-regression/temp_ca-nova-regression.postman_collection.json ca-nova-regression/temp_nova-ca-sit.postman_environment.json
                         }
 
                         run_newman_with_secret
                     '''
                 }
             }
-        }
 
-        stage('Archive HTML Report') {
-            steps {
-                archiveArtifacts artifacts: 'newman_html_report.html', fingerprint: true
+            post {
+                always {
+                    echo "Archive Report"
+                    archiveArtifacts artifacts: 'ca-nova-regression/newman/ca-nova-regression-report.html', fingerprint: true
+                }
             }
         }
+    }
 
-        stage('Send Email Notification') {
-            steps {
+    post {
+        always {
+            script {
+                sh 'cd ca-nova-regression/newman ; zip -r ca-nova-regression.zip'
+                archiveArtifacts("ca-nova-regression/newman/*.zip")
+                def newmanConsoleOutput = sh(script: "awk '/┌─────────────────────┐/,/└─────────────────────┘/; /failure/{f=1} f && !/failure/; /AssertionError/{f=0}' ca-nova-regression/console.txt", returnStdout: true).trim()
                 emailext(
-                    to: 'team@example.com',
-                    subject: "Newman Test Results: ${currentBuild.fullDisplayName}",
-                    body: '''${FILE,path="newman_html_report.html"}
-                                     Console output:
-                                     ${BUILD_LOG, maxLines=1000}
-                                  ''',
-                    attachmentsPattern: 'newman_html_report.html',
-                    mimeType: 'text/html'
+                    attachmentsPattern: "ca-nova-regression/newman/*.zip, ca-nova-regression/console.txt",
+                    mimeType: "text/html",
+                    subject: "[JENKINS_ca-nova-regression] ${JOB_NAME} - Build # ${BUILD_NUMBER} - ${currentBuild.currentResult}",
+                    body: """
+                        <p>Build Status: ${currentBuild.currentResult}. </p>
+                        <p>Build URL: <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a>, </p>
+                        <p>Full Report:<a href='${env.BUILD_URL}/artifact/newman/*.zip'>Link</a></p>
+                        <h3>Detail Console Log</h3>
+                        <pre>${newmanConsoleOutput}</pre>
+                    """,
+                    to: main_resource.caEmailList
                 )
             }
         }
